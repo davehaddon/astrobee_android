@@ -96,7 +96,29 @@ public class MessengerService extends Service {
                 ManagerNode.INSTANCE().getLogger().error(LOG_TAG, "Couldn't find sdcard folder " +
                         "in file system! Major error! Unable to start GS apk without base path!");
             } else {
+                File data_path = new File(sdcard_path.getPath() + "/data");
+                if (!data_path.exists()) {
+                    ManagerNode.INSTANCE().getLogger().debug(LOG_TAG, "SDCard Base path " + data_path + " does not exist, creating.");
+                    if (data_path.mkdir()) {
+                        ManagerNode.INSTANCE().getLogger().debug(LOG_TAG, "SDCard Base path " + data_path + " has been created.");
+                    } else {
+                        ManagerNode.INSTANCE().getLogger().debug(LOG_TAG, "SDCard Base path " + data_path + " could not be created. Writable?" + sdcard_path.canWrite() + "  Executable?" + sdcard_path.canExecute());
+                    }
+                } else {
+                    ManagerNode.INSTANCE().getLogger().debug(LOG_TAG, "SDCard Base path " + data_path + " exists!.");
+                }
                 gs_data_base_path = sdcard_path.getPath() + "/data/" + apkName;
+
+                File base_apk_path = new File(gs_data_base_path);
+                if (!base_apk_path.exists()) {
+                    ManagerNode.INSTANCE().getLogger().debug(LOG_TAG,"APK Base path " + gs_data_base_path + " does not exist,  creating..");
+                    if (base_apk_path.mkdir()) {
+                        ManagerNode.INSTANCE().getLogger().debug(LOG_TAG,"APK Base path " + gs_data_base_path + " has been created.");
+                    }
+                    else {
+                        ManagerNode.INSTANCE().getLogger().debug(LOG_TAG,"SDCard Base path " + gs_data_base_path + " could not be created.");
+                    }
+                }
 
                 File immediate_path = new File(gs_data_base_path.toString() + "/immediate");
                 if (!immediate_path.exists() || !immediate_path.isDirectory()) {
@@ -148,22 +170,9 @@ public class MessengerService extends Service {
         if (mApkMessengers.containsKey(apkName)) {
             Messenger messenger = mApkMessengers.get(apkName);
             Message msg = Message.obtain(null, MessageType.CMD.toInt());
-
-            // Check to make sure the message and messenger aren't null
-            if (messenger == null) {
-                ManagerNode.INSTANCE().getLogger().error(LOG_TAG, "Messenger for apk is null. Cannot send custom guest science command.");
-                return false;
-            }
-            if (msg == null) {
-                ManagerNode.INSTANCE().getLogger().error(LOG_TAG, "Command message for apk is null. Cannot send command to apk.");
-                return false;
-            }
-
             Bundle data_bundle = new Bundle();
             data_bundle.putString("command", command);
             msg.setData(data_bundle);
-
-            // Send custom guest science command
             try {
                 messenger.send(msg);
             } catch (RemoteException e) {
@@ -182,23 +191,9 @@ public class MessengerService extends Service {
         if (mApkMessengers.containsKey(apkName)) {
             Messenger messenger = mApkMessengers.get(apkName);
             Message msg = Message.obtain(null, MessageType.STOP.toInt());
-
-            // Check to make sure the message and messenger aren't null
-            if (messenger == null) {
-                ManagerNode.INSTANCE().getLogger().error(LOG_TAG, "Messenger for apk is null. Cannot stop apk.");
-                return false;
-            }
-            if (msg == null) {
-                ManagerNode.INSTANCE().getLogger().error(LOG_TAG, "Stop message for apk is null. Cannot stop apk.");
-                return false;
-            }
-
-            // Send stop message to apk
             try {
                 messenger.send(msg);
-                // Remove messenger so we don't try to use a dead object
-                mApkMessengers.remove(apkName);
-            } catch (RemoteException e) {
+            } catch (RemoteException | NullPointerException e) {
                 ManagerNode.INSTANCE().getLogger().error(LOG_TAG, e.getMessage(), e);
                 return false;
             }
