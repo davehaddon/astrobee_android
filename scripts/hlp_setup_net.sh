@@ -20,7 +20,7 @@ BOLDWHITE="\033[1m\033[37m"
 
 DEF_LLP_IP_DEV="10.42.0.34"
 DEF_HLP_IP_DEV="10.42.0.36"
-DEF_INTERFACE_DEV="eth0"
+DEF_INTERFACE_DEV="wired0"
 
 DEF_LLP_IP_EMU="10.42.0.31"
 DEF_HLP_IP_EMU="10.42.0.33"
@@ -187,6 +187,12 @@ done
 printf $BOLDWHITE"\n This script will set the Android-Ubuntu network for you\n\n"$RESET
 
 # -------------------------------------------- Check HLP is online --------------------------------------------------
+
+# add LLP address to Astrobee adapter
+sudo ip addr add 10.42.0.34/24 dev enp5s0
+
+# Turn on port forwarding so draculon can connect through me
+sudo sysctl net.ipv4.ip_forward=1
 
 # Ensure ADB server is running
 adb start-server
