@@ -109,7 +109,6 @@ public class MessengerService extends Service {
                 }
                 gs_data_base_path = sdcard_path.getPath() + "/data/" + apkName;
 
-<<<<<<< HEAD
                 File base_apk_path = new File(gs_data_base_path);
                 if (!base_apk_path.exists()) {
                     ManagerNode.INSTANCE().getLogger().debug(LOG_TAG,"APK Base path " + gs_data_base_path + " does not exist,  creating..");
@@ -119,10 +118,6 @@ public class MessengerService extends Service {
                     else {
                         ManagerNode.INSTANCE().getLogger().debug(LOG_TAG,"SDCard Base path " + gs_data_base_path + " could not be created.");
                     }
-=======
-                if (! new File(gs_data_base_path).exists()) {
-                    new File(gs_data_base_path).mkdirs();
->>>>>>> davehaddon/emu_ok
                 }
 
                 File immediate_path = new File(gs_data_base_path.toString() + "/immediate");
