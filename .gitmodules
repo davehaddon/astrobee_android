@@ -1,0 +1,3 @@
+[submodule "guest_science_projects/mrs_monitor"]
+	path = guest_science_projects/mrs_monitor
+	url = ssh://git@bitbucket.csiro.au:7999/zb/mrs_monitor.git

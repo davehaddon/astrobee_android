@@ -17,15 +17,20 @@ fi
 # Should we run the network configuration script? Do not modify this variable.
 run_net=
 
+#Should we create the non-default network bridge
+BRIDGE=false
 # -------------------------------------------- Check flags -------------------------------------------------------------------
 
 # Read arguments and set variables from them
 # Flags override environment variables
-while getopts :nd:l:h:e: option
+while getopts :bndw:l:h:e: option
 do
   case "$option" in
   e)
     EMULATOR=$OPTARG
+    ;;
+  b)
+    BRIDGE=true
     ;;
   h)
     HLP_IP=$OPTARG
@@ -38,6 +43,9 @@ do
     ;;
   n)
     run_net=true
+    ;;
+  w)
+    writable="-writable-system"
     ;;
   *)
     printf "\n > Invalid option received\n"
@@ -81,29 +89,48 @@ fi
 
 # -------------------------------------------- Set bridge --------------------------------------------------------------------
 
-if ! ip link | grep -q br0; then
-  ip link add name br0 type bridge
-  ip addr add "$LLP_IP"/24 dev br0
-  ip link set dev br0 up
+if $BRIDGE; then
+  if ! ip link | grep -q br0; then
+    echo "Creating Bridge to Android emulator on $LLP_IP"
+    ip link add name br0 type bridge
+    ip addr add "$LLP_IP"/24 dev br0
+    ip link set dev br0 up
+  else
+    echo "Bridge to Android Emulator already exists on $LLP_IP"
+  fi
+
+  if ! ip link | grep -q tap0; then
+    ip tuntap add dev tap0 mode tap user ${USER}
+    ip link set dev tap0 master br0
+    ip link set dev tap0 up
+  else
+    echo "Tap device to Android emulator on $LLP_IP already exists"
+  fi
 fi
 
-if ! ip link | grep -q tap0; then
-  ip tuntap add dev tap0 mode tap user ${USER}
-  ip link set dev tap0 master br0
-  ip link set dev tap0 up
+
+
+# -------------------------------------------- Start emulator -----------------------------------------------------------------
+
+if ps ac | grep qemu
+then
+  echo "Emulator already running... Not starting it again"
+  
+else
+  "$EMULATOR" -avd "${AVD}" -no-snapshot $writable -qemu -device virtio-net-pci,netdev=net1 -netdev tap,id=net1,script=no,downscript=no,ifname=tap0 &
 fi
+
 
 # -------------------------------------------- Configure emulator network -----------------------------------------------------
 
 if [ ! -z $run_net ]; then
-  sudo gnome-terminal -e "./hlp_setup_net.sh -e -h $HLP_IP -l $LLP_IP -w -1 -t 60"
+  if [ -e ./hlp_setup_net.sh ]; then
+    sudo "./hlp_setup_net.sh -e -h $HLP_IP -l $LLP_IP -w -1 -t 60" 
+  elif [ -e $ASTROBEE_WS/src/submodules/android/scripts/hlp_setup_net.sh ] ; then
+    sudo $ASTROBEE_WS/src/submodules/android/scripts/hlp_setup_net.sh -e -h $HLP_IP -l $LLP_IP -w -1 -t 60 
+  else
+    echo "Could not find network setup script..."
+    exit 2
+  fi
 fi
 
-# -------------------------------------------- Start emulator -----------------------------------------------------------------
-
-"$EMULATOR" -avd "${AVD}" -no-snapshot -writable-system -qemu -device virtio-net-pci,netdev=net1 -netdev tap,id=net1,script=no,downscript=no,ifname=tap0
-
-# -------------------------------------------- Destroying bridge --------------------------------------------------------------
-
-ip link delete br0
-ip link delete tap0

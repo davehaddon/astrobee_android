@@ -8,6 +8,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import android.util.Log;
 
 import ff_msgs.SignalState;
 
@@ -70,6 +71,8 @@ public class Utils {
             return true;
         } catch (IOException e) {
             // Connection problem
+            Log.w("SIGNAL_STATE","Failed to find master at " + host + ":" + port);
+            e.printStackTrace();
             return false;
         }
     }
@@ -81,6 +84,7 @@ public class Utils {
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
+        Log.w("SIGNAL_STATE","ROS Master IP is " + rosMasterIp);
         return rosMasterIp;
     }
 }
