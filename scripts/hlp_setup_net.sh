@@ -22,8 +22,8 @@ DEF_LLP_IP_DEV="10.42.0.34"
 DEF_HLP_IP_DEV="10.42.0.36"
 DEF_INTERFACE_DEV="wired0"
 
-DEF_LLP_IP_EMU="10.42.0.31"
-DEF_HLP_IP_EMU="10.42.0.33"
+DEF_LLP_IP_EMU="10.42.0.34"
+DEF_HLP_IP_EMU="10.42.0.36"
 DEF_INTERFACE_EMU="eth1"
 
 DEF_MASK="/24"
@@ -86,6 +86,7 @@ function isHlpAddressSet {
 
 function setupHlpNetwork {
   if [ $(isHlpAddressSet) = false ]; then
+    echo "Setting HLP Interface bridge stuff"
     adb -s $adb_device shell echo "ip link set dev $hlp_interface down" \| su
     adb -s $adb_device shell echo "ip addr flush dev $hlp_interface" \| su
     adb -s $adb_device shell echo "ip link set dev $hlp_interface up" \| su
@@ -101,19 +102,34 @@ function setupHlpNetwork {
 function checkNetworkConnection {
   local is_link_to_mlp_ok=false
   local is_link_to_hlp_ok=false
+  local is_link_to_self_ok=false
   local output
 
-  output=$(ping -c1 $hlp_ip)
+  ping -c1 $hlp_ip > /dev/stderr
   if [ $? -eq 0 ]; then
     is_link_to_hlp_ok=true
+    printf $BOLDGREEN"\n    We Can ping HLP from LLP...  $OUTPUT $RESET" > /dev/stderr
+  else
+    printf $BOLDYELLOW"\n    We CAN'T ping HLP from LLP...   :($RESET"  > /dev/stderr
   fi
 
   output=$(adb -s $adb_device shell "ping -c 1 $llp_ip &> /dev/null && echo 0 || echo 1")
   if [ $output -eq 0 ]; then
     is_link_to_mlp_ok=true
+    printf $BOLDGREEN"\n    We Can ping LLP from HLP... $RESET" > /dev/stderr
+  else
+    printf $BOLDYELLOW"\n     We CAN'T ping LLP from HLP...   :($RESET"  > /dev/stderr
   fi
 
-  $($is_link_to_hlp_ok && $is_link_to_mlp_ok) && echo true || echo false
+  output=$(ping -c1 $llp_ip)
+  if [ $? -eq 0 ]; then
+    is_link_to_self_ok=true
+    printf $BOLDGREEN"\n    We CAN ping the LLP from LLP. we have loopback\n$RESET" > /dev/stderr
+  else
+    printf $BOLDYELLOW"\n     We CAN'T ping LLP from LLP...  NO LOOPBACK!!  :(\n$RESET"  > /dev/stderr
+  fi
+
+  $($is_link_to_hlp_ok && $is_link_to_mlp_ok && $is_link_to_self_ok)  && echo true || echo false
 }
 
 function isBootCompleted {
@@ -188,11 +204,12 @@ printf $BOLDWHITE"\n This script will set the Android-Ubuntu network for you\n\n
 
 # -------------------------------------------- Check HLP is online --------------------------------------------------
 
+
 # add LLP address to Astrobee adapter
-sudo ip addr add 10.42.0.34/24 dev enp5s0
+#sudo ip addr add 10.42.0.34/24 dev enp5s0
 
 # Turn on port forwarding so draculon can connect through me
-sudo sysctl net.ipv4.ip_forward=1
+#sudo sysctl net.ipv4.ip_forward=1
 
 # Ensure ADB server is running
 adb start-server
@@ -301,5 +318,5 @@ done
 
 printf $BOLDGREEN"\n > Connection Test: Success!\n"
 printf "\n > RESULT: Success!\n\n"$RESET
-read -p "Press Return to exit"
 
+read -p "Press Return to exit"

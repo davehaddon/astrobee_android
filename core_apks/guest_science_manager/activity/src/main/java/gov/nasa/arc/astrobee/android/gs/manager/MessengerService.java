@@ -98,6 +98,10 @@ public class MessengerService extends Service {
             } else {
                 gs_data_base_path = sdcard_path.getPath() + "/data/" + apkName;
 
+                if (! new File(gs_data_base_path).exists()) {
+                    new File(gs_data_base_path).mkdirs();
+                }
+
                 File immediate_path = new File(gs_data_base_path.toString() + "/immediate");
                 if (!immediate_path.exists() || !immediate_path.isDirectory()) {
                     immediate_path.mkdirs();
